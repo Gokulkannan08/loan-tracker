@@ -1,53 +1,36 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
 ## Commands
 
 ```bash
-npm run dev       # Start Vite dev server (hot reload)
+npm run dev       # Vite dev server (hot reload)
 npm run build     # Production build
-npm run preview   # Preview production build locally
+npm run preview   # Preview production build
+npx tsc --noEmit  # Type-check only
 ```
 
-No test suite is configured.
+No test suite configured.
 
 ## Architecture
 
-This is a **fully client-side React SPA** — no backend, no API calls, no routing. All computation runs in the browser.
+Client-side React SPA. `App.tsx` holds all state; `useMemo` drives derived data from `loan-engine.ts` pure functions.
 
-### Data Flow
+- `src/lib/loan-engine.ts` — All financial logic (`pmt`, `buildSchedule`, `computeFYData`, `computeRegCosts`, `computeTotals`)
+- `src/lib/utils.ts` — `cn()` utility
+- `src/App.tsx` — Single component: sidebar (268px) + topbar + tabs (Dashboard | Amortization | Tax & Costs)
+- `src/components/ui/` — shadcn preset `b5dfpLoQC`; regenerate via `npx shadcn@latest add <component>`
 
-```
-User Input (useState) → useMemo → loan-engine.js pure functions → Rendered UI
-```
+See [`docs/architecture.md`](docs/architecture.md) for layout diagram and domain context.
 
-`App.jsx` holds all state (~60 inputs) and calls `useMemo` to recompute derived data on every relevant state change. There is no global state manager.
+## Styling
 
-### Key Files
+Tailwind CSS v4 via `@tailwindcss/vite`. Config in `src/index.css` `@theme {}` block. No `tailwind.config.js`.
+Dark mode: `dark` class on `<html>`. OKLCH colors. Fonts: IBM Plex Sans Variable + JetBrains Mono.
 
-- **`src/lib/loan-engine.js`** — All financial logic. Pure functions only:
-  - `pmt()` — EMI via reducing-balance formula
-  - `buildSchedule()` — Month-by-month amortization with prepayments and lump sums
-  - `computeFYData()` — Tax deductions (Section 24(b) interest, Section 80C principal) by Indian Financial Year (April–March)
-  - `computeRegCosts()` — Processing fee + GST, CERSAI charges, RBI 2026 preclosure penalty rules
-  - `computeTotals()` — Aggregates standard vs accelerated repayment comparison
+See [`docs/styling.md`](docs/styling.md) for details.
 
-- **`src/App.jsx`** — Single large component. Contains the three-tab UI (Dashboard | Amortization | Tax & Costs), all `useState` declarations, and `useMemo` blocks that drive the charts and tables.
+## Tech Stack & Versioning
 
-- **`src/components/ui/`** — shadcn/ui primitives (Button, Card, Input, Select, Tabs, DatePicker, etc.). These are Radix UI wrappers styled with Tailwind + CVA variants. Treat them as stable library code.
+React 19.2.4 · Vite 8.0.3 · TypeScript 6.0.2 · Tailwind 4.2.2 · recharts 3.8.1 · react-day-picker 9.14.0
 
-### Styling
-
-- Tailwind CSS v3 with dark mode enabled by class (dark class is set on `<html>` in `index.html`)
-- Custom HSL CSS variables defined in `src/index.css` — colors are referenced as `bg-background`, `text-foreground`, etc.
-- Primary accent: Amber (`#f59e0b`)
-- Font: JetBrains Mono (loaded from Google Fonts)
-
-### Domain Context
-
-The app implements Indian home loan calculations:
-- INR amounts formatted in Lakhs/Crores via `fmt()` / `fmtFull()`
-- Tax brackets and deduction caps follow Indian income tax rules
-- Preclosure penalty logic follows RBI 2026 guidelines (zero penalty for floating rate; percentage-based for fixed)
-- "Joint borrower" mode doubles the deduction caps
+**Use exact version pins** (no `^` or `~`). See [`docs/tech-stack.md`](docs/tech-stack.md).
